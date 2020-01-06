@@ -83,15 +83,3 @@ COPY entrypoint-cron /usr/local/bin
 COPY entrypoint-chuid /usr/local/bin
 ENTRYPOINT ["entrypoint-chuid"]
 CMD ["php-fpm"]
-
-# Project-specific ini settings
-COPY ./php-ini-overrides.ini /usr/local/etc/php/conf.d/
-
-# Project-specific xdebug settings
-COPY ./xdebug.ini /usr/local/etc/php/conf.d/xdebug.ini.bak
-
-# Install ssh deploy key (for git actions inside container like composer install)
-#COPY id_rsa /home/www-data/.ssh/
-#COPY known_hosts /home/www-data/.ssh/
-#RUN chmod 0600 /home/www-data/.ssh/id_rsa && \
-#    chown -R www-data:www-data /home/www-data/.ssh
