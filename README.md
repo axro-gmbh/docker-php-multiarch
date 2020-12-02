@@ -1,4 +1,4 @@
-# PHP 7.4 fpm alpine for symfony projects
+# PHP 8.0 fpm alpine for symfony projects
 
 This image features
 * Useful PHP extensions
