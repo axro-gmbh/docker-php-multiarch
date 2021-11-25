@@ -7,20 +7,21 @@ RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS && \
     apk add --no-cache --virtual .ext-runtime-deps libbz2 libzip-dev libmcrypt libxslt icu && \
     apk add --no-cache --virtual .ext-build-deps bzip2-dev libmcrypt-dev libxml2-dev libedit-dev libxslt-dev icu-dev sqlite-dev
 
-RUN docker-php-ext-configure gd \
-      --with-freetype=/usr/include/ \
-      --with-jpeg=/usr/include/
+RUN docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg
+
+RUN NPROC=$(getconf _NPROCESSORS_ONLN) && \
+    docker-php-ext-install -j${NPROC} gd
 
 RUN NPROC=$(getconf _NPROCESSORS_ONLN) && \
     docker-php-ext-install -j${NPROC} bz2 dom exif fileinfo
 
 RUN docker-php-ext-install iconv intl opcache pcntl pdo pdo_mysql pdo_sqlite session simplexml xml xsl zip gd
-# RUN pecl install xdebug
-# RUN docker-php-ext-enable xdebug
+RUN pecl install xdebug
+RUN docker-php-ext-enable xdebug
 RUN pecl install apcu
 RUN docker-php-ext-enable apcu
 RUN apk del .gd-build-deps
-RUN apk del .build-deps
+# RUN apk del .build-deps
 RUN apk del .ext-build-deps
 RUN rm -r /tmp/*
 
