@@ -21,6 +21,7 @@ RUN NPROC=$(getconf _NPROCESSORS_ONLN) && \
     docker-php-ext-enable xdebug && \
     pecl install apcu && \
     docker-php-ext-enable apcu && \
+    #apk del .gd-build-deps && \
     apk del .build-deps && \
     apk del .ext-build-deps && \
     rm -r /tmp/*
@@ -70,8 +71,8 @@ COPY ./docker-base.ini /usr/local/etc/php/conf.d/
 
 # Disable xdebug by default and add a script to reactivate
 # Just add a COPY ./xdebug.ini /usr/local/etc/php/conf.d/xdebug.ini.bak in your project
-# COPY xdebug.sh /
-# RUN mv /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini.bak
+COPY xdebug.sh /
+RUN mv /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini.bak
 
 # Cache composer downloads in a volume
 VOLUME /var/www/.composer
