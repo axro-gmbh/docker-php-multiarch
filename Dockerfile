@@ -16,7 +16,7 @@ RUN NPROC=$(getconf _NPROCESSORS_ONLN) && \
     docker-php-ext-install -j${NPROC} bz2 dom exif fileinfo
 
 RUN NPROC=$(getconf _NPROCESSORS_ONLN) && \
-    docker-php-ext-install -j${NPROC} iconv intl opcache pcntl pdo pdo_mysql pdo_sqlite session simplexml xml xsl zip && \
+    docker-php-ext-install -j${NPROC} intl opcache pcntl pdo pdo_mysql pdo_sqlite session simplexml xml xsl zip && \
     pecl install xdebug && \
     docker-php-ext-enable xdebug && \
     pecl install apcu && \
