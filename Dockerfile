@@ -1,10 +1,10 @@
-FROM php:8.1-fpm-alpine
+FROM php:8.2-fpm-alpine
 
 # Install PHP extensions
 RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS && \
     apk add --no-cache --virtual .gd-runtime-deps freetype libpng libjpeg-turbo && \
     apk add --no-cache --virtual .gd-build-deps freetype-dev libpng-dev libjpeg-turbo-dev && \
-    apk add --no-cache --virtual .ext-runtime-deps libbz2 libzip-dev libmcrypt libxslt icu && \
+    apk add --no-cache --virtual .ext-runtime-deps libbz2 libzip-dev libmcrypt libxslt icu linux-headers && \
     apk add --no-cache --virtual .ext-build-deps bzip2-dev libmcrypt-dev libxml2-dev libedit-dev libxslt-dev icu-dev sqlite-dev
 
 RUN docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg
