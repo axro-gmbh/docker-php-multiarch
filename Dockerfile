@@ -1,4 +1,4 @@
-FROM php:8.2-fpm-alpine
+FROM php:8.3.0RC2-fpm-alpine3.18
 
 # Install PHP extensions
 RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS && \
@@ -17,8 +17,8 @@ RUN NPROC=$(getconf _NPROCESSORS_ONLN) && \
 
 RUN NPROC=$(getconf _NPROCESSORS_ONLN) && \
     docker-php-ext-install -j${NPROC} intl opcache pcntl pdo pdo_mysql pdo_sqlite session simplexml xml xsl zip && \
-    pecl install xdebug && \
-    docker-php-ext-enable xdebug && \
+#    pecl install xdebug && \
+#    docker-php-ext-enable xdebug && \
     pecl install apcu && \
     docker-php-ext-enable apcu && \
     #apk del .gd-build-deps && \
@@ -71,8 +71,8 @@ COPY ./docker-base.ini /usr/local/etc/php/conf.d/
 
 # Disable xdebug by default and add a script to reactivate
 # Just add a COPY ./xdebug.ini /usr/local/etc/php/conf.d/xdebug.ini.bak in your project
-COPY xdebug.sh /
-RUN mv /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini.bak
+# COPY xdebug.sh /
+# RUN mv /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini.bak
 
 # Cache composer downloads in a volume
 VOLUME /var/www/.composer
