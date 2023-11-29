@@ -1,4 +1,4 @@
-FROM php:8.3.0RC2-fpm-alpine3.18
+FROM php:8.3-fpm-alpine3.18
 
 # Install PHP extensions
 RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS && \
