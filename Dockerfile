@@ -77,6 +77,12 @@ RUN mv /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini /usr/local/etc/php/co
 # Cache composer downloads in a volume
 VOLUME /var/www/.composer
 
+# Add composer auth.json
+RUN mkdir /home/www-data/.composer
+ADD auth.json /home/www-data/.composer/auth.json
+RUN chmod 600 /home/www-data/.composer/auth.json
+RUN chown -R www-data:www-data /home/www-data/.composer
+
 # Script to wait for db
 COPY wait-for /usr/local/bin
 
