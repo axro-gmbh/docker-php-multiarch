@@ -1,62 +1,35 @@
 FROM php:8.3-fpm-alpine3.20
 
-# Install PHP extensions
-RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS && \
-    apk add --no-cache --virtual .gd-runtime-deps freetype libpng libjpeg-turbo && \
-    apk add --no-cache --virtual .gd-build-deps freetype-dev libpng-dev libjpeg-turbo-dev && \
-    apk add --no-cache --virtual .ext-runtime-deps libbz2 libzip-dev libmcrypt libxslt icu linux-headers && \
-    apk add --no-cache --virtual .ext-build-deps bzip2-dev libmcrypt-dev libxml2-dev libedit-dev libxslt-dev icu-dev sqlite-dev
+# OCI image labels for metadata
+LABEL org.opencontainers.image.title="PHP 8.3 FPM (Alpine) for Symfony" \
+      org.opencontainers.image.description="PHP 8.3 FPM on Alpine 3.20 with common extensions, APCu, Composer, fcron, and developer tools." \
+      org.opencontainers.image.version="8.3-fpm-alpine3.20" \
+      org.opencontainers.image.licenses="MIT"
 
-RUN docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg
+# Install PHP runtime and build dependencies in fewer layers
+RUN set -eux; \
+    apk add --no-cache --virtual .php-build-deps \
+        $PHPIZE_DEPS bzip2-dev libxml2-dev libedit-dev libxslt-dev icu-dev sqlite-dev libzip-dev linux-headers \
+        libpng-dev libjpeg-turbo-dev freetype-dev \
+    && apk add --no-cache --virtual .php-runtime-deps \
+        freetype libpng libjpeg-turbo libbz2 libzip libxslt icu \
+    && NPROC="$(getconf _NPROCESSORS_ONLN)" \
+    && docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j"${NPROC}" \
+        gd bz2 dom exif fileinfo intl opcache pcntl pdo pdo_mysql pdo_sqlite session simplexml xml xsl zip \
+    && pecl install apcu \
+    && docker-php-ext-enable apcu \
+    && apk del .php-build-deps \
+    && rm -rf /tmp/*
 
-RUN NPROC=$(getconf _NPROCESSORS_ONLN) && \
-    docker-php-ext-install -j${NPROC} gd
+# Composer (deterministic): use official binary
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
-RUN NPROC=$(getconf _NPROCESSORS_ONLN) && \
-    docker-php-ext-install -j${NPROC} bz2 dom exif fileinfo
+# Tools: git/ssh, rsync, DB client, timezone, uid helpers
+RUN apk add --no-cache git openssh-client rsync mariadb-client tzdata shadow su-exec
 
-RUN NPROC=$(getconf _NPROCESSORS_ONLN) && \
-    docker-php-ext-install -j${NPROC} intl opcache pcntl pdo pdo_mysql pdo_sqlite session simplexml xml xsl zip && \
-#    pecl install xdebug && \
-#    docker-php-ext-enable xdebug && \
-    pecl install apcu && \
-    docker-php-ext-enable apcu && \
-    #apk del .gd-build-deps && \
-    apk del .build-deps && \
-    apk del .ext-build-deps && \
-    rm -r /tmp/*
-
-# download composerin the latest stable release
-RUN curl -o composer-installer.php https://getcomposer.org/installer && \
-    php composer-installer.php --quiet --install-dir="/usr/local/bin" && \
-    ln -s /usr/local/bin/composer.phar /usr/local/bin/composer && \
-    rm composer-installer.php
-
-# Install git+ssh (for composer install)
-RUN apk add --no-cache git openssh-client rsync
-
-# Install mysql client (for data-transfer operations)
-RUN apk add --no-cache mysql-client
-
-# Install timezone change utils
-RUN apk add --no-cache tzdata
-
-# Tools to change the uid on run
-RUN echo http://dl-cdn.alpinelinux.org/alpine/edge/community/ >> /etc/apk/repositories && \
-    apk add --no-cache shadow su-exec
-
-# Install and configure fcron
-RUN groupadd -r -g 109 fcron && \
-    useradd -u 109 -r fcron -g fcron && \
-    apk add --no-cache --virtual .build-deps g++ make perl && \
-    wget http://fcron.free.fr/archives/fcron-3.3.0.src.tar.gz && \
-    tar xfz fcron-3.3.0.src.tar.gz  && \
-    cd fcron-3.3.0  && \
-    ./configure && \
-    make && \
-    make install && \
-    apk del .build-deps && \
-    rm -Rf fcron-3.3.0*z
+# fcron via apk (smaller, faster than building from source)
+RUN apk add --no-cache fcron
 ADD fcron.conf /usr/local/etc
 ADD echomail /usr/local/bin
 RUN chown root:fcron /usr/local/etc/fcron.conf && \
@@ -74,19 +47,24 @@ COPY ./docker-base.ini /usr/local/etc/php/conf.d/
 # COPY xdebug.sh /
 # RUN mv /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini.bak
 
-# Cache composer downloads in a volume
-VOLUME /var/www/.composer
+# Cache composer downloads in a volume (align with Composer home)
+VOLUME /home/www-data/.composer
 
-# Add composer auth.json
-RUN mkdir /home/www-data/.composer
+# Add composer auth.json (left intact as requested)
+RUN mkdir -p /home/www-data/.composer
 ADD auth.json /home/www-data/.composer/auth.json
-RUN chmod 600 /home/www-data/.composer/auth.json
-RUN chown -R www-data:www-data /home/www-data/.composer
+RUN chmod 600 /home/www-data/.composer/auth.json && \
+    chown -R www-data:www-data /home/www-data/.composer
 
 # Script to wait for db
 COPY wait-for /usr/local/bin
 
 COPY entrypoint-cron /usr/local/bin
 COPY entrypoint-chuid /usr/local/bin
+
+# Healthcheck: ensure php-fpm master process is running
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD pgrep -f 'php-fpm: master process' > /dev/null || exit 1
+
 ENTRYPOINT ["entrypoint-chuid"]
 CMD ["php-fpm"]
