@@ -109,6 +109,5 @@ jobs:
           TAGS: ${{ steps.meta.outputs.tags }}
         run: |
           for TAG in ${TAGS}; do
-            DIGEST=$(docker buildx imagetools inspect ${TAG} -v | awk '/Digest:/ {print $2; exit}');
-            cosign sign --yes ${TAG}@${DIGEST};
+            cosign sign --yes --recursive "${TAG}"
           done
