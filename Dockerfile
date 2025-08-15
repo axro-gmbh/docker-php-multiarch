@@ -1,9 +1,9 @@
 FROM php:8.4-fpm-alpine
 
 # OCI image labels for metadata
-LABEL org.opencontainers.image.title="PHP 8.3 FPM (Alpine) for Symfony" \
-      org.opencontainers.image.description="PHP 8.3 FPM on Alpine 3.20 with common extensions, APCu, Composer, fcron, and developer tools." \
-      org.opencontainers.image.version="8.3-fpm-alpine3.20" \
+LABEL org.opencontainers.image.title="PHP 8.4 FPM (Alpine) for Symfony" \
+      org.opencontainers.image.description="PHP 8.4 FPM on Alpine with common extensions, APCu, Composer, fcron, and developer tools." \
+      org.opencontainers.image.version="8.4-fpm-alpine" \
       org.opencontainers.image.licenses="MIT"
 
 # Install PHP runtime and build dependencies in fewer layers
