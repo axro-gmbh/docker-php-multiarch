@@ -1,4 +1,4 @@
-FROM php:8.3-fpm-alpine3.20
+FROM php:8.4-fpm-alpine
 
 # OCI image labels for metadata
 LABEL org.opencontainers.image.title="PHP 8.3 FPM (Alpine) for Symfony" \
