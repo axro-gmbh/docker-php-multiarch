@@ -50,12 +50,6 @@ COPY ./docker-base.ini /usr/local/etc/php/conf.d/
 # Cache composer downloads in a volume (align with Composer home)
 VOLUME /home/www-data/.composer
 
-# Add composer auth.json (left intact as requested)
-RUN mkdir -p /home/www-data/.composer
-ADD auth.json /home/www-data/.composer/auth.json
-RUN chmod 600 /home/www-data/.composer/auth.json && \
-    chown -R www-data:www-data /home/www-data/.composer
-
 # Script to wait for db
 COPY wait-for /usr/local/bin
 
