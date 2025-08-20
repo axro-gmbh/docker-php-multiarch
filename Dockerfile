@@ -25,6 +25,10 @@ RUN set -eux; \
 # Composer (deterministic): use official binary
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
+# Use a non-volume path for Composer cache/home and make it writable
+ENV COMPOSER_HOME=/var/www/.composer
+RUN mkdir -p "$COMPOSER_HOME" && chmod 0777 "$COMPOSER_HOME"
+
 # Tools: git/ssh, rsync, DB client, timezone, uid helpers
 RUN apk add --no-cache git openssh-client rsync mariadb-client tzdata shadow su-exec
 
@@ -47,10 +51,7 @@ COPY ./docker-base.ini /usr/local/etc/php/conf.d/
 # COPY xdebug.sh /
 # RUN mv /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini.bak
 
-# Cache composer downloads in a volume (align with Composer home)
-VOLUME /home/www-data/.composer
-RUN chown -R www-data:www-data /home/www-data/.composer
-
+# Composer cache is stored in a non-volume path (see COMPOSER_HOME)
 # Script to wait for db
 COPY wait-for /usr/local/bin
 
