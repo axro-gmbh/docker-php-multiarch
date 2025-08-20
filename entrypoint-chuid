@@ -14,6 +14,11 @@ if [ `id -g ${GROUPNAME}` != ${GID} ]; then
 	groupmod -g ${GID} ${GROUPNAME}
 fi
 
+# Ensure Composer home exists and is owned by the runtime user
+COMPOSER_HOME=${COMPOSER_HOME:-/var/www/.composer}
+mkdir -p "$COMPOSER_HOME"
+chown -R ${USERNAME}:${GROUPNAME} "$COMPOSER_HOME"
+
 # Call parent entrypoint (as other user) when needed
 if [ ! -z ${USERSPACE} ]; then
 	# Downgrade to ${USERNAME}
