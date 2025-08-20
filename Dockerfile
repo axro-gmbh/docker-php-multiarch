@@ -49,6 +49,7 @@ COPY ./docker-base.ini /usr/local/etc/php/conf.d/
 
 # Cache composer downloads in a volume (align with Composer home)
 VOLUME /home/www-data/.composer
+RUN chown -R www-data:www-data /home/www-data/.composer
 
 # Script to wait for db
 COPY wait-for /usr/local/bin
