@@ -1,8 +1,14 @@
+# Build supercronic in a separate stage to support multiple architectures
+FROM golang:1.23-alpine AS supercronic-build
+ARG SUPERCRONIC_VERSION=v0.2.33
+RUN apk add --no-cache git \
+ && go install github.com/aptible/supercronic@${SUPERCRONIC_VERSION}
+
 FROM php:8.4-fpm-alpine
 
 # OCI image labels for metadata
 LABEL org.opencontainers.image.title="PHP 8.4 FPM (Alpine) for Symfony" \
-      org.opencontainers.image.description="PHP 8.4 FPM on Alpine with common extensions, APCu, Composer, fcron, and developer tools." \
+      org.opencontainers.image.description="PHP 8.4 FPM on Alpine with common extensions, APCu, Composer, supecronic, and developer tools." \
       org.opencontainers.image.version="8.4-fpm-alpine" \
       org.opencontainers.image.licenses="MIT"
 
@@ -30,18 +36,14 @@ ENV COMPOSER_HOME=/var/www/.composer
 RUN mkdir -p "$COMPOSER_HOME" && chmod 0777 "$COMPOSER_HOME"
 
 # Tools: git/ssh, rsync, DB client, timezone, uid helpers
-RUN apk add --no-cache git openssh-client rsync mariadb-client tzdata shadow su-exec
-
-# fcron via apk (smaller, faster than building from source)
-RUN apk add --no-cache fcron
-ADD fcron.conf /usr/local/etc
-ADD echomail /usr/local/bin
-RUN chown root:fcron /usr/local/etc/fcron.conf && \
-    chmod 644 /usr/local/etc/fcron.conf
+RUN apk add --no-cache git openssh-client rsync mariadb-client tzdata shadow su-exec curl
 
 # Default configuration for fpm
 # Project-specific ini can be added with COPY ./php-ini-overrides.ini /usr/local/etc/php/conf.d/
 COPY ./zz-fpm.conf /usr/local/etc/php-fpm.d/
+
+# Add supercronic from build stage
+COPY --from=supercronic-build /go/bin/supercronic /usr/local/bin/supercronic
 
 # Base php ini
 COPY ./docker-base.ini /usr/local/etc/php/conf.d/
