@@ -1,7 +1,35 @@
 #!/bin/sh
-entrypoint-chuid
+set -eu
 
-# Install mounted crontab as www-data user
-fcrontab -u www-data /project/cron/crontab
+# Prepare UID/GID and env like the main image, but do not exec
+entrypoint-chuid --setup-only
 
-$@
+# Determine crontab source; require it to exist
+CRON_FILE=${CRON_FILE:-/project/cron/crontab}
+if [ ! -f "$CRON_FILE" ]; then
+  echo "[entrypoint-cron] ERROR: crontab not found at $CRON_FILE. Mount your crontab or set CRON_FILE." >&2
+  exit 1
+fi
+
+# Helper: try to run with su-exec if possible; otherwise fall back to current user
+run_as_www_data_or_current() {
+  if [ -z "${NO_SU_EXEC:-}" ]; then
+    if su-exec www-data sh -c 'true' 2>/dev/null; then
+      exec su-exec www-data "$@"
+    else
+      echo "[entrypoint-cron] su-exec not permitted; running as current user" >&2
+      exec "$@"
+    fi
+  else
+    echo "[entrypoint-cron] NO_SU_EXEC=1 set; running as current user" >&2
+    exec "$@"
+  fi
+}
+
+# If a command is provided, run it as www-data when possible; otherwise start supercronic
+if [ "$#" -gt 0 ]; then
+  run_as_www_data_or_current "$@"
+else
+  echo "[entrypoint-cron] Starting supercronic with $CRON_FILE"
+  run_as_www_data_or_current /usr/local/bin/supercronic -json "$CRON_FILE"
+fi

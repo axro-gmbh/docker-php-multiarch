@@ -1,29 +1,29 @@
 #!/bin/sh
-# Change UID to the one from user
-# NOTE: You cannot change the uid of the running process, so this must happen as root. Use -e USERSPACE=1 instead of --user=www-data at docker-compose
+# Change UID/GID to match env-provided values and optionally exec docker-php-entrypoint
+# If called with --setup-only, perform remap and exit without exec'ing.
 
 set -e
 USERNAME="www-data"
 GROUPNAME=${USERNAME}
 
-# Change uid of the user.
-if [ `id -u ${USERNAME}` != ${UID} ]; then
-	usermod -u ${UID} ${USERNAME}
+# Change uid/gid of the user if requested via env
+if [ -n "${UID:-}" ] && [ "$(id -u ${USERNAME})" != "${UID}" ]; then
+    usermod -u ${UID} ${USERNAME}
 fi
-if [ `id -g ${GROUPNAME}` != ${GID} ]; then
-	groupmod -g ${GID} ${GROUPNAME}
+if [ -n "${GID:-}" ] && [ "$(id -g ${GROUPNAME})" != "${GID}" ]; then
+    groupmod -g ${GID} ${GROUPNAME}
 fi
 
-# Ensure Composer home exists and is owned by the runtime user
-COMPOSER_HOME=${COMPOSER_HOME:-/var/www/.composer}
-mkdir -p "$COMPOSER_HOME"
-chown -R ${USERNAME}:${GROUPNAME} "$COMPOSER_HOME"
+# Setup-only mode for other entrypoints (e.g., cron) that need remap without exec
+if [ "${1:-}" = "--setup-only" ]; then
+    exit 0
+fi
 
 # Call parent entrypoint (as other user) when needed
-if [ ! -z ${USERSPACE} ]; then
-	# Downgrade to ${USERNAME}
-	su-exec ${USERNAME} docker-php-entrypoint "$@"
+if [ -n "${USERSPACE:-}" ]; then
+    # Downgrade to ${USERNAME}
+    su-exec ${USERNAME} docker-php-entrypoint "$@"
 else
-	# Run as same user (root)
-	exec docker-php-entrypoint "$@"
+    # Run as same user (root)
+    exec docker-php-entrypoint "$@"
 fi
