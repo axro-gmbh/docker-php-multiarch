@@ -7,7 +7,7 @@ RUN apk add --no-cache git \
 FROM php:8.4-fpm-alpine
 
 # OCI image labels for metadata
-LABEL org.opencontainers.image.title="PHP 8.4 FPM (Alpine) for Symfony" \
+LABEL org.opencontainers.image.title="PHP 8.4 FPM (Alpine) for Pimcore" \
       org.opencontainers.image.description="PHP 8.4 FPM on Alpine with common extensions, APCu, Composer, supecronic, and developer tools." \
       org.opencontainers.image.version="8.4-fpm-alpine" \
       org.opencontainers.image.licenses="MIT"
@@ -16,15 +16,15 @@ LABEL org.opencontainers.image.title="PHP 8.4 FPM (Alpine) for Symfony" \
 RUN set -eux; \
     apk add --no-cache --virtual .php-build-deps \
         $PHPIZE_DEPS bzip2-dev libxml2-dev libedit-dev libxslt-dev icu-dev sqlite-dev libzip-dev linux-headers \
-        libpng-dev libjpeg-turbo-dev freetype-dev \
+        libpng-dev libjpeg-turbo-dev freetype-dev libwebp-dev imagemagick-dev \
     && apk add --no-cache --virtual .php-runtime-deps \
-        freetype libpng libjpeg-turbo libbz2 libzip libxslt icu \
+        freetype libpng libjpeg-turbo libwebp imagemagick libbz2 libzip libxslt icu \
     && NPROC="$(getconf _NPROCESSORS_ONLN)" \
-    && docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg \
+    && docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j"${NPROC}" \
         gd bz2 dom exif fileinfo intl opcache pcntl pdo pdo_mysql pdo_sqlite session simplexml xml xsl zip \
-    && pecl install apcu \
-    && docker-php-ext-enable apcu \
+    && pecl install apcu redis imagick \
+    && docker-php-ext-enable apcu redis imagick \
     && apk del .php-build-deps \
     && rm -rf /tmp/*
 
