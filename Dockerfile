@@ -4,25 +4,26 @@ ARG SUPERCRONIC_VERSION=v0.2.33
 RUN apk add --no-cache git \
  && go install github.com/aptible/supercronic@${SUPERCRONIC_VERSION}
 
-FROM php:8.4-fpm-alpine
+FROM php:8.5-fpm-alpine
 
 # OCI image labels for metadata
-LABEL org.opencontainers.image.title="PHP 8.4 FPM (Alpine) for Symfony" \
-      org.opencontainers.image.description="PHP 8.4 FPM on Alpine with common extensions, APCu, Composer, supecronic, and developer tools." \
-      org.opencontainers.image.version="8.4-fpm-alpine" \
+LABEL org.opencontainers.image.title="PHP 8.5 FPM (Alpine) for Symfony" \
+      org.opencontainers.image.description="PHP 8.5 FPM on Alpine with common extensions, APCu, Composer, supecronic, and developer tools." \
+      org.opencontainers.image.version="8.5-fpm-alpine" \
       org.opencontainers.image.licenses="MIT"
 
-# Install PHP runtime and build dependencies in fewer layers
+# Install PHP runtime deps, build gd+bz2+intl+zip+PDO (mysql/sqlite)+exif+pcntl+xsl, and add APCu
+# Note: we rely on the core extensions already compiled into php:8.5-fpm-alpine; here we only add gd, bz2, intl, zip, pdo, pdo_mysql, pdo_sqlite, exif, pcntl, xsl + apcu
 RUN set -eux; \
     apk add --no-cache --virtual .php-build-deps \
-        $PHPIZE_DEPS bzip2-dev libxml2-dev libedit-dev libxslt-dev icu-dev sqlite-dev libzip-dev linux-headers \
+        $PHPIZE_DEPS \
+        bzip2-dev icu-dev libzip-dev sqlite-dev mariadb-dev libxslt-dev \
         libpng-dev libjpeg-turbo-dev freetype-dev \
     && apk add --no-cache --virtual .php-runtime-deps \
-        freetype libpng libjpeg-turbo libbz2 libzip libxslt icu \
+        freetype libpng libjpeg-turbo libbz2 libzip libxslt icu sqlite-libs \
     && NPROC="$(getconf _NPROCESSORS_ONLN)" \
     && docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j"${NPROC}" \
-        gd bz2 dom exif fileinfo intl opcache pcntl pdo pdo_mysql pdo_sqlite session simplexml xml xsl zip \
+    && docker-php-ext-install -j"${NPROC}" gd bz2 intl zip pdo pdo_mysql pdo_sqlite exif pcntl xsl \
     && pecl install apcu \
     && docker-php-ext-enable apcu \
     && apk del .php-build-deps \
