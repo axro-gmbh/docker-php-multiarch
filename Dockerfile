@@ -18,7 +18,7 @@ RUN set -eux; \
         $PHPIZE_DEPS bzip2-dev libxml2-dev libedit-dev libxslt-dev icu-dev sqlite-dev libzip-dev linux-headers \
         libpng-dev libjpeg-turbo-dev freetype-dev libwebp-dev imagemagick-dev \
     && apk add --no-cache --virtual .php-runtime-deps \
-        freetype libpng libjpeg-turbo libwebp imagemagick libbz2 libzip libxslt icu \
+        freetype libpng libjpeg-turbo libwebp imagemagick ghostscript libbz2 libzip libxslt icu \
     && NPROC="$(getconf _NPROCESSORS_ONLN)" \
     && docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j"${NPROC}" \
