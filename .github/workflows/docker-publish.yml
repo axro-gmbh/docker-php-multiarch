@@ -46,6 +46,20 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
+      # Build into the local daemon first, so a broken image never reaches the registry
+      - name: Build single-arch image for testing (${{ matrix.arch }})
+        uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
+        with:
+          context: .
+          platforms: linux/${{ matrix.arch }}
+          load: true
+          tags: smoke-test:${{ matrix.arch }}
+          cache-from: type=gha,scope=${{ matrix.arch }}
+
+      - name: Smoke test (${{ matrix.arch }})
+        run: ./smoke-test.sh smoke-test:${{ matrix.arch }}
+
+      # Same inputs as the test build, so this is served from the builder cache
       - name: Build and push single-arch image (${{ matrix.arch }})
         id: build-and-push
         uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
