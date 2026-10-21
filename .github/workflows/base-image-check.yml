@@ -28,6 +28,14 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       IMAGE: ghcr.io/${{ github.repository }}:${{ matrix.branch }}
     steps:
+      # The GHCR package is private even though the repository is public
+      - name: Log into registry ghcr.io
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       # Our image is stale when its bottom layers are no longer the current base layers
       - name: Compare base layers
         id: compare
