@@ -14,9 +14,11 @@ LABEL org.opencontainers.image.title="PHP 8.5 FPM (Alpine) for Symfony" \
 
 # Install PHP runtime deps, build gd+bz2+intl+zip+PDO (mysql/sqlite)+exif+pcntl+xsl, and add APCu
 # Note: we rely on the core extensions already compiled into php:8.5-fpm-alpine; here we only add gd, bz2, intl, zip, pdo, pdo_mysql, pdo_sqlite, exif, pcntl, xsl + apcu
-RUN set -eux; \
+# PIE (successor of PECL) is mounted for this step only and does not end up in the image
+RUN --mount=type=bind,from=ghcr.io/php/pie:1-bin,source=/pie,target=/usr/local/bin/pie \
+    set -eux; \
     apk add --no-cache --virtual .php-build-deps \
-        $PHPIZE_DEPS \
+        $PHPIZE_DEPS unzip \
         bzip2-dev icu-dev libzip-dev sqlite-dev mariadb-dev libxslt-dev \
         libpng-dev libjpeg-turbo-dev freetype-dev \
     && apk add --no-cache --virtual .php-runtime-deps \
@@ -24,10 +26,9 @@ RUN set -eux; \
     && NPROC="$(getconf _NPROCESSORS_ONLN)" \
     && docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"${NPROC}" gd bz2 intl zip pdo pdo_mysql pdo_sqlite exif pcntl xsl \
-    && pecl install apcu \
-    && docker-php-ext-enable apcu \
+    && pie install --no-cache apcu/apcu \
     && apk del .php-build-deps \
-    && rm -rf /tmp/*
+    && rm -rf /tmp/* /root/.pie
 
 # Composer (deterministic): use official binary
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
