@@ -13,9 +13,11 @@ LABEL org.opencontainers.image.title="PHP 8.2 FPM (Alpine) for Symfony" \
       org.opencontainers.image.licenses="MIT"
 
 # Install PHP runtime and build dependencies in fewer layers
-RUN set -eux; \
+# PIE (successor of PECL) is mounted for this step only and does not end up in the image
+RUN --mount=type=bind,from=ghcr.io/php/pie:1-bin,source=/pie,target=/usr/local/bin/pie \
+    set -eux; \
     apk add --no-cache --virtual .php-build-deps \
-        $PHPIZE_DEPS bzip2-dev libxml2-dev libedit-dev libxslt-dev icu-dev sqlite-dev libzip-dev linux-headers \
+        $PHPIZE_DEPS unzip bzip2-dev libxml2-dev libedit-dev libxslt-dev icu-dev sqlite-dev libzip-dev linux-headers \
         libpng-dev libjpeg-turbo-dev freetype-dev \
     && apk add --no-cache --virtual .php-runtime-deps \
         freetype libpng libjpeg-turbo libbz2 libzip libxslt icu \
@@ -23,10 +25,9 @@ RUN set -eux; \
     && docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"${NPROC}" \
         gd bz2 dom exif fileinfo intl opcache pcntl pdo pdo_mysql pdo_sqlite session simplexml xml xsl zip \
-    && pecl install apcu \
-    && docker-php-ext-enable apcu \
+    && pie install --no-cache apcu/apcu \
     && apk del .php-build-deps \
-    && rm -rf /tmp/*
+    && rm -rf /tmp/* /root/.pie
 
 # Composer (deterministic): use official binary
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
