@@ -20,6 +20,7 @@ jobs:
           - { branch: 8.4-fpm-alpine-symfony, base: 'php:8.4-fpm-alpine' }
           - { branch: 8.4-fpm-alpine-pimcore, base: 'php:8.4-fpm-alpine' }
           - { branch: 8.5-fpm-alpine-symfony, base: 'php:8.5-fpm-alpine' }
+          - { branch: 8.6-fpm-alpine-symfony, base: 'php:8.6-fpm-alpine' }
     runs-on: ubuntu-latest
     permissions:
       contents: read
