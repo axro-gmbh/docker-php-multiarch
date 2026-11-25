@@ -12,20 +12,20 @@ LABEL org.opencontainers.image.title="PHP 8.6 FPM (Alpine) for Symfony" \
       org.opencontainers.image.version="8.6-fpm-alpine" \
       org.opencontainers.image.licenses="MIT"
 
-# Install PHP runtime deps, build gd+bz2+intl+zip+PDO (mysql/sqlite)+exif+pcntl+xsl, and add APCu
-# Note: we rely on the core extensions already compiled into php:8.6-fpm-alpine; here we only add gd, bz2, intl, zip, pdo, pdo_mysql, pdo_sqlite, exif, pcntl, xsl + apcu
+# Install PHP runtime deps, build gd+bz2+intl+mbstring+zip+PDO (mysql/sqlite)+exif+pcntl+xsl, and add APCu
+# Note: we rely on the core extensions already compiled into php:8.6-fpm-alpine; here we only add gd, bz2, intl, mbstring (no longer built in since 8.6), zip, pdo, pdo_mysql, pdo_sqlite, exif, pcntl, xsl + apcu
 # PIE (successor of PECL) is mounted for this step only and does not end up in the image
 RUN --mount=type=bind,from=ghcr.io/php/pie:1-bin,source=/pie,target=/usr/local/bin/pie \
     set -eux; \
     apk add --no-cache --virtual .php-build-deps \
         $PHPIZE_DEPS unzip libtool \
-        bzip2-dev icu-dev libzip-dev sqlite-dev mariadb-dev libxslt-dev \
+        bzip2-dev icu-dev libzip-dev sqlite-dev mariadb-dev libxslt-dev oniguruma-dev \
         libpng-dev libjpeg-turbo-dev freetype-dev \
     && apk add --no-cache --virtual .php-runtime-deps \
-        freetype libpng libjpeg-turbo libbz2 libzip libxslt icu sqlite-libs \
+        freetype libpng libjpeg-turbo libbz2 libzip libxslt icu sqlite-libs oniguruma \
     && NPROC="$(getconf _NPROCESSORS_ONLN)" \
     && docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j"${NPROC}" gd bz2 intl zip pdo pdo_mysql pdo_sqlite exif pcntl xsl \
+    && docker-php-ext-install -j"${NPROC}" gd bz2 intl mbstring zip pdo pdo_mysql pdo_sqlite exif pcntl xsl \
     # apcu 5.1.28 does not build on PHP 8.6; pin master until 5.1.29 is released (krakjoe/apcu#634)
     && pie install --no-cache "apcu/apcu:dev-master#ebbcd3d1" \
     && apk del .php-build-deps \
